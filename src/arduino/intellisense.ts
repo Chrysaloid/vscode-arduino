@@ -14,6 +14,7 @@ import {
     ArduinoGccParser,
     cachedSketchBuildDir,
     IArduinoGccResult,
+    removeFlagDependentDefines,
     resolveIntelliSenseMode,
     sketchCommandFromCompilationDatabase,
 } from "./compilerCommandParser";
@@ -163,6 +164,10 @@ export function makeCompilerParserContext(dc: DeviceContext, removeDefines: stri
             result.defines = result.defines.filter((define) =>
                 removeDefines.indexOf(define.split("=")[0]) === -1);
         }
+
+        // The compiler's built-in defines were queried without the sketch's
+        // flags; let IntelliSense derive the ones that depend on them.
+        result.defines = removeFlagDependentDefines(result.defines);
 
         // Add USB Connected macro to defines.
         result.defines.push("USBCON");
