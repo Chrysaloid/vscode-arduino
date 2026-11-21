@@ -75,6 +75,8 @@ export function isCompilerParserEnabled(dc?: DeviceContext) {
  * and keeps the calling context more readable.
  *
  * @param dc The device context of the caller.
+ * @param removeDefines Macro names to leave out of the configuration's
+ * defines.
  *
  * Possible enhancements:
  *
@@ -82,7 +84,7 @@ export function isCompilerParserEnabled(dc?: DeviceContext) {
  *     as at least for the forcedIncludes IntelliSense seems to take the
  *     order into account.
  */
-export function makeCompilerParserContext(dc: DeviceContext): ICoCoPaContext {
+export function makeCompilerParserContext(dc: DeviceContext, removeDefines: string[] = []): ICoCoPaContext {
 
     // TODO: callback for local setting: when IG gen is re-enabled file
     //   analysis trigger. Perhaps for global possible as well?
@@ -130,6 +132,11 @@ export function makeCompilerParserContext(dc: DeviceContext): ICoCoPaContext {
         const mmdIndex = result.options.findIndex((element) => element === "-MMD");
         if (mmdIndex !== -1) {
             result.options.splice(mmdIndex, 1);
+        }
+
+        if (removeDefines.length) {
+            result.defines = result.defines.filter((define) =>
+                removeDefines.indexOf(define.split("=")[0]) === -1);
         }
 
         // Add USB Connected macro to defines.
