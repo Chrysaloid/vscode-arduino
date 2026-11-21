@@ -341,3 +341,102 @@ function quoteForShlex(argument: string): string {
     }
     return `"${argument.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`;
 }
+
+/**
+ * Chooses the IntelliSense mode from the compiler's predefined macros (CoCoPa
+ * collects them by querying the compiler with "-dM -E"). Arduino toolchains
+ * are cross compilers for 32-bit (or smaller) targets such as ARM, Xtensa,
+ * RISC-V and AVR; IntelliSense treats them as 64-bit (wrong sizes of long and
+ * pointers) when the mode is the host default or "gcc-x64".
+ *
+ * IntelliSense has no mode for Xtensa, RISC-V or AVR. "arm" is used for every
+ * target whose pointers are not 8 bytes wide, since it gives the 32-bit type
+ * sizes those targets use (AVR's 16-bit int is not representable at all).
+ *
+ * Returns undefined if the macros do not tell the pointer size (the compiler
+ * could not be queried), so the caller can keep its default.
+ */
+export function resolveIntelliSenseMode(defines: string[]): string | undefined {
+    const macros = new Map<string, string>();
+    for (const define of defines) {
+        const index = define.indexOf("=");
+        if (index === -1) {
+            macros.set(define, "1");
+        } else {
+            macros.set(define.slice(0, index), define.slice(index + 1));
+        }
+    }
+
+    const pointerSize = macros.get("__SIZEOF_POINTER__");
+    if (!pointerSize) {
+        return undefined;
+    }
+
+    const compiler = macros.has("__clang__") ? "clang" : "gcc";
+    let architecture: string;
+    if (pointerSize === "8") {
+        architecture = macros.has("__aarch64__") ? "arm64" : "x64";
+    } else if (macros.has("__i386__")) {
+        architecture = "x86";
+    } else {
+        architecture = "arm";
+    }
+
+    // Toolchains for bare-metal targets are GCC (or Clang) with a Unix-like
+    // ABI regardless of the host, so use the Linux variant of the mode.
+    return `linux-${compiler}-${architecture}`;
+}
+
+/**
+ * Arduino CLI caches build results (in the user's cache directory when no
+ * output path is set) and then prints "Using previously compiled file:
+ * .../sketch/<sketch>.cpp.o" instead of the compile command, so there is
+ * nothing for the parser to match. Returns the build directory from such a
+ * line for the main sketch, or undefined for any other line.
+ */
+export function cachedSketchBuildDir(line: string, sketch: string): string | undefined {
+    const prefix = "Using previously compiled file:";
+    const index = line.indexOf(prefix);
+    if (index === -1) {
+        return undefined;
+    }
+    const objectFile = line.slice(index + prefix.length).trim();
+    const sketchDir = path.dirname(objectFile);
+    if (path.basename(objectFile) !== `${sketch}.cpp.o` ||
+        path.basename(sketchDir) !== "sketch") {
+        return undefined;
+    }
+    return path.dirname(sketchDir);
+}
+
+/**
+ * Rebuilds the main sketch's compile command line from the compilation
+ * database (compile_commands.json) that Arduino CLI writes into every build
+ * directory. The result is quoted so that splitGccArguments() gives back the
+ * original arguments. Returns undefined if the sketch is not in the database.
+ */
+export function sketchCommandFromCompilationDatabase(
+    database: string,
+    sketch: string,
+): string | undefined {
+    let entries: any;
+    try {
+        entries = JSON.parse(database);
+    } catch (error) {
+        return undefined;
+    }
+    if (!Array.isArray(entries)) {
+        return undefined;
+    }
+    const entry = entries.find((e) =>
+        e && typeof e.file === "string" &&
+        path.basename(e.file) === `${sketch}.cpp` &&
+        Array.isArray(e.arguments));
+    if (!entry) {
+        return undefined;
+    }
+    return entry.arguments.map((argument: string) =>
+        /[\s"'\\]/.test(argument)
+            ? `"${argument.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`
+            : argument).join(" ");
+}

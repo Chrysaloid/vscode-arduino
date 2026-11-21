@@ -22,6 +22,7 @@ import { AnalysisManager,
          makeCompilerParserContext,
          normalizeCompilerLine } from "./intellisense";
 import { LibraryManager } from "./libraryManager";
+import { defaultSketchProfile } from "./sketchProfile";
 import { VscodeSettings } from "./vscodeSettings";
 
 import { arduinoChannel } from "../common/outputChannel";
@@ -576,13 +577,33 @@ export class ArduinoApp {
 
         if (!dc.sketch || !util.fileExistsSync(path.join(ArduinoWorkspace.rootPath, dc.sketch))) {
             if (buildMode === BuildMode.Analyze) {
-                // Analyze runs non interactively
-                return false;
-            }
-            if (!await dc.resolveMainSketch()) {
+                // Analyze runs non interactively, so only accept the main
+                // sketch that the Arduino sketch layout implies: the .ino
+                // file named after the sketch folder. Without this, projects
+                // whose arduino.json has no "sketch" never get an
+                // IntelliSense configuration until the user runs Verify.
+                const mainSketch = `${path.basename(ArduinoWorkspace.rootPath)}.ino`;
+                if (!util.fileExistsSync(path.join(ArduinoWorkspace.rootPath, mainSketch))) {
+                    return false;
+                }
+                dc.sketch = mainSketch;
+            } else if (!await dc.resolveMainSketch()) {
                 vscode.window.showErrorMessage("No sketch file was found. Please specify the sketch in the arduino.json file");
                 return false;
             }
+        }
+
+        // With a default_profile in sketch.yaml, Arduino CLI resolves the
+        // board only among the profile's platforms, so passing the board
+        // selected here (which comes from the globally installed platforms)
+        // fails with "platform not installed" unless they happen to match.
+        // Let the profile choose the board, as a plain "arduino-cli compile"
+        // in the sketch folder would.
+        const sketchProfile = this.useArduinoCli() ?
+            defaultSketchProfile(path.dirname(path.join(ArduinoWorkspace.rootPath, dc.sketch))) :
+            undefined;
+        if (sketchProfile) {
+            args.splice(args.indexOf("-b"), 2);
         }
 
         const selectSerial = async () => {
@@ -706,6 +727,10 @@ export class ArduinoApp {
             arduinoChannel.clear();
         }
         arduinoChannel.start(`${buildMode} sketch '${dc.sketch}'`);
+        if (sketchProfile) {
+            arduinoChannel.info(`Using the default profile '${sketchProfile}' of sketch.yaml ` +
+                `instead of the selected board '${boardDescriptor}'.`);
+        }
 
         if (buildDir || dc.output) {
             // 2020-02-29, EW: This whole code appears a bit wonky to me.

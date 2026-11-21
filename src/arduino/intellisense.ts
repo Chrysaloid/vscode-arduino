@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import * as ccp from "cocopa";
+import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 
@@ -11,7 +12,10 @@ import { ArduinoWorkspace } from "../common/workspace";
 import { DeviceContext } from "../deviceContext";
 import {
     ArduinoGccParser,
+    cachedSketchBuildDir,
     IArduinoGccResult,
+    resolveIntelliSenseMode,
+    sketchCommandFromCompilationDatabase,
 } from "./compilerCommandParser";
 import { VscodeSettings } from "./vscodeSettings";
 
@@ -97,9 +101,30 @@ export function makeCompilerParserContext(dc: DeviceContext): ICoCoPaContext {
 
     const engines = makeCompilerParserEngines(dc);
     const runner = new ccp.Runner(engines);
+    const runnerCallback = runner.callback();
+    const sketch = path.basename(dc.sketch);
+    let cachedBuildDir: string | undefined;
+    const callback = (line: string) => {
+        cachedBuildDir = cachedSketchBuildDir(line, sketch) || cachedBuildDir;
+        runnerCallback(line);
+    };
 
     // Set up the callback to be called after parsing
     const _conclude = async () => {
+        if (!runner.result && cachedBuildDir) {
+            // The sketch was not recompiled (Arduino CLI reused its cached
+            // object file), so take its command from the compilation database.
+            try {
+                const database = fs.readFileSync(
+                    path.join(cachedBuildDir, "compile_commands.json"), "utf8");
+                const command = sketchCommandFromCompilationDatabase(database, sketch);
+                if (command) {
+                    runnerCallback(command);
+                }
+            } catch (error) {
+                // Fall through to the warning below.
+            }
+        }
         if (!runner.result) {
             arduinoChannel.warning("Failed to generate IntelliSense configuration.");
             return;
@@ -148,6 +173,13 @@ export function makeCompilerParserContext(dc: DeviceContext): ICoCoPaContext {
         if (result.effectiveCppStandard) {
             content.configurations[0].cppStandard = result.effectiveCppStandard;
         }
+        // Match the IntelliSense mode to the target (e.g. 32-bit for ESP32),
+        // falling back to the default above if the compiler was not queried.
+        const intelliSenseMode = resolveIntelliSenseMode(result.defines);
+        if (intelliSenseMode) {
+            content.configurations[0].intelliSenseMode =
+                intelliSenseMode as ccp.CCppPropertiesISMode;
+        }
 
         try {
 
@@ -168,7 +200,7 @@ export function makeCompilerParserContext(dc: DeviceContext): ICoCoPaContext {
         }
     };
     return {
-        callback: runner.callback(),
+        callback,
         conclude: _conclude,
     }
 }
