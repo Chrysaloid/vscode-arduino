@@ -16,6 +16,7 @@ const configKeys = {
     ALLOW_PDE_FILETYPE: "arduino.allowPDEFiletype",
     ENABLE_USB_DETECTION: "arduino.enableUSBDetection",
     DISABLE_TESTING_OPEN: "arduino.disableTestingOpen",
+    DEFAULT_SERIAL_MONITOR_BAUD_RATE: "arduino.defaultSerialMonitorBaudRate",
     IGNORE_BOARDS: "arduino.ignoreBoards",
     SKIP_HEADER_PROVIDER: "arduino.skipHeaderProvider",
     USE_ARDUINO_CLI: "arduino.useArduinoCli",
@@ -37,6 +38,7 @@ export interface IVscodeSettings {
     allowPDEFiletype: boolean;
     enableUSBDetection: boolean;
     disableTestingOpen: boolean;
+    defaultSerialMonitorBaudRate: number | undefined;
     ignoreBoards: string[];
     skipHeaderProvider: boolean;
     useArduinoCli: boolean;
@@ -121,6 +123,12 @@ export class VscodeSettings implements IVscodeSettings {
 
     public get disableTestingOpen(): boolean {
         return this.getConfigValue<boolean>(configKeys.DISABLE_TESTING_OPEN);
+    }
+
+    /** The configured serial monitor baud rate, or undefined when unset (null) or not a positive integer. */
+    public get defaultSerialMonitorBaudRate(): number | undefined {
+        const value = this.getConfigValue<number | null>(configKeys.DEFAULT_SERIAL_MONITOR_BAUD_RATE);
+        return Number.isInteger(value) && value > 0 ? value : undefined;
     }
 
     public get ignoreBoards(): string[] {
