@@ -323,8 +323,8 @@ export async function activate(context: vscode.ExtensionContext) {
         const excludedFolders = sketchbookPath
             ? [path.join(sketchbookPath, "hardware"), path.join(sketchbookPath, "libraries")]
             : [];
-        if (deviceContext.output) {
-            excludedFolders.push(path.resolve(rootPath, deviceContext.output));
+        if (deviceContext.outputBase) {
+            excludedFolders.push(path.resolve(rootPath, deviceContext.outputBase));
         }
         if (excludedFolders.some((folder) => util.isPathInside(folder, sketchFile))) {
             return;
