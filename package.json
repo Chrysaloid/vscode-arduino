@@ -252,6 +252,14 @@
           "default": true,
           "markdownDescription": "When true, an IntelliSense analysis of the sketch (run when the board, configuration or sketch changes) reveals the Arduino output. When false, the output is still written but stays in the background; the status bar shows the analysis in progress and a failed one."
         },
+        "arduino.additionalLibraryFolders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Folders of libraries to compile against besides the sketchbook's `libraries` folder; as in that folder, each subfolder of one is a library. Relative paths are resolved against the workspace folder. Passed to `arduino-cli compile` as `--libraries` on every verify, upload and IntelliSense analysis (Arduino CLI only)."
+        },
         "arduino.openPDEFiletype": {
           "type": "boolean",
           "default": false,

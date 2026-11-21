@@ -11,6 +11,7 @@ const configKeys = {
     LOG_LEVEL: "arduino.logLevel",
     CLEAR_OUTPUT_ON_START: "arduino.clearOutputOnBuild",
     ANALYZING_SKETCH_FOCUS_OUTPUT: "arduino.analyzingSketchFocusOutput",
+    ADDITIONAL_LIBRARY_FOLDERS: "arduino.additionalLibraryFolders",
     AUTO_UPDATE_INDEX_FILES: "arduino.autoUpdateIndexFiles",
     ALLOW_PDE_FILETYPE: "arduino.allowPDEFiletype",
     ENABLE_USB_DETECTION: "arduino.enableUSBDetection",
@@ -32,6 +33,7 @@ export interface IVscodeSettings {
     logLevel: string;
     clearOutputOnBuild: boolean;
     analyzingSketchFocusOutput: boolean;
+    additionalLibraryFolders: string[];
     allowPDEFiletype: boolean;
     enableUSBDetection: boolean;
     disableTestingOpen: boolean;
@@ -103,6 +105,10 @@ export class VscodeSettings implements IVscodeSettings {
 
     public get analyzingSketchFocusOutput(): boolean {
         return this.getConfigValue<boolean>(configKeys.ANALYZING_SKETCH_FOCUS_OUTPUT);
+    }
+
+    public get additionalLibraryFolders(): string[] {
+        return this.getConfigValue<string[]>(configKeys.ADDITIONAL_LIBRARY_FOLDERS) || [];
     }
 
     public get allowPDEFiletype(): boolean {
