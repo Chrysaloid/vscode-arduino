@@ -97,55 +97,24 @@ export function resolveCppStandard(options: string[]): string | undefined {
     return standard;
 }
 
-interface ICompilationDatabaseEntry {
-    arguments?: string[];
-    command?: string;
-    directory?: string;
-    file: string;
-}
-
 /**
  * Reads the compile command of the main sketch file from the compilation
- * database (compile_commands.json) that arduino-cli writes into the build
- * directory, as a command line like the ones arduino-cli prints, for the
- * compiler output parser.
+ * database (compile_commands.json) in the build directory, as a command
+ * line for the compiler output parser (see
+ * sketchCommandFromCompilationDatabase()).
  * @param buildDir The build directory (--build-path).
  * @param sketch The sketch file, e.g. "MySketch/MySketch.ino".
  * @returns The command line, or undefined when there is no database or no
  * entry for the sketch in it.
  */
 export function readSketchCompileCommand(buildDir: string, sketch: string): string | undefined {
-    let database: ICompilationDatabaseEntry[];
+    let database: string;
     try {
-        database = JSON.parse(fs.readFileSync(path.join(buildDir, "compile_commands.json"), "utf8"));
+        database = fs.readFileSync(path.join(buildDir, "compile_commands.json"), "utf8");
     } catch (error) {
         return undefined;
     }
-    // arduino-cli compiles the main sketch file as sketch/<name>.ino.cpp
-    const sketchSource = `${path.basename(sketch)}.cpp`;
-    const entry = (Array.isArray(database) ? database : []).find((e) =>
-        typeof e.file === "string" &&
-        path.basename(e.file) === sketchSource &&
-        path.basename(path.dirname(e.file)) === "sketch");
-    if (!entry) {
-        return undefined;
-    }
-    if (Array.isArray(entry.arguments) && entry.arguments.length) {
-        return entry.arguments.map(quoteCommandLineArgument).join(" ");
-    }
-    return typeof entry.command === "string" ? entry.command : undefined;
-}
-
-/**
- * Quotes an argument the way arduino-cli prints compiler command lines and
- * splitGccArguments() reads them: only when it contains whitespace or
- * quotes, with inner double quotes escaped.
- */
-function quoteCommandLineArgument(argument: string): string {
-    if (!/[\s"']/.test(argument)) {
-        return argument;
-    }
-    return `"${argument.replace(/"/g, "\\\"")}"`;
+    return sketchCommandFromCompilationDatabase(database, path.basename(sketch));
 }
 
 export function splitGccArguments(input: string): string[] {
