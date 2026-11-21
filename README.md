@@ -23,9 +23,8 @@ be removed in a future version of the extension.
 ### Arduino CLI
 To use the bundled version of Arduino CLI, `arduino.useArduinoCli` should be `true`,
 and `arduino.path` and `arduino.commandPath` should be empty or unset.
-`arduino.useArduinoCli` defaults to `false` while we deprecate support for the
-Arduino IDE, but there will be a prompt when the extension first activates to
-switch to the Arduino CLI.
+`arduino.useArduinoCli` defaults to `true`; set it to `false` to keep using the
+legacy Arduino IDE, whose support is deprecated.
 
 If you want to use a custom version of Arduino CLI, it can be downloaded from
 the repository's [release page](https://github.com/arduino/arduino-cli/releases/).
@@ -91,7 +90,7 @@ This extension provides several commands in the Command Palette (<kbd>F1</kbd> o
 ## Options
 | Option | Description |
 | --- | --- |
-| `arduino.useArduinoCli` | Whether to use the Arduino CLI (`true`) or the legacy Arduino IDE (`false`) -- defaults to `false`. If using `true`, either leave the `arduino.path` and `arduino.commandPath` values unset to use the bundled version of Arduino CLI, or point them at a custom version of Arduino CLI. Note that a future version of the extension will change this default to `true` and remove support for legacy Arduino IDE. |
+| `arduino.useArduinoCli` | Whether to use the Arduino CLI (`true`) or the legacy Arduino IDE (`false`) -- defaults to `true`. If using `true`, either leave the `arduino.path` and `arduino.commandPath` values unset to use the bundled version of Arduino CLI, or point them at a custom version of Arduino CLI. Note that a future version of the extension will remove support for legacy Arduino IDE. |
 | `arduino.path`  | Path to the Arduino installation.  You can use a custom version of Arduino by modifying this setting to include the full path. Example: `C:\\Program Files\\Arduino` for Windows, `/Applications` for Mac, `/home/<username>/Downloads/arduino-1.8.1` for Linux. (Requires a restart after change). The default value is automatically detected from your legacy Arduino IDE installation path. To use the Arduino CLI, use the path that contains the `arduino-cli` executable (e.g. `/usr/local/bin`), or leave it unset to use the bundled version of Arduino CLI. |
 | `arduino.commandPath` | Path to an executable (or script) relative to `arduino.path`. The default value is `arduino_debug.exe` for Windows, `Contents/MacOS/Arduino` for Mac and `arduino` for Linux, You also can use a custom launch script to run Arduino by modifying this setting. (Requires a restart after change) Example: `run-arduino.bat` for Windows, `Contents/MacOS/run-arduino.sh` for Mac and `bin/run-arduino.sh` for Linux. To use the bundled version of Arduino CLI, leave this option unset. To use a custom version of Arduino CLI, use `arduino-cli`. |
 | `arduino.additionalUrls` | Additional Boards Manager URLs for 3rd party packages as a string array. The default value is empty. |
