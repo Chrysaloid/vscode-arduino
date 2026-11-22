@@ -720,8 +720,9 @@ export class ArduinoApp {
             args.push("--config-file", path.join(ArduinoWorkspace.rootPath, "arduino-cli.yaml"));
         }
 
-        // "arduino-cli upload" has no --libraries option; every other CLI
-        // mode compiles.
+        // "arduino-cli upload" does not compile and rejects --libraries and
+        // --build-property; every other CLI mode compiles. The build
+        // preferences were applied when the binaries were built.
         const compiles = buildMode !== BuildMode.CliUpload && buildMode !== BuildMode.CliUploadProgrammer;
         if (this.useArduinoCli() && compiles) {
             for (const folder of VscodeSettings.getInstance().additionalLibraryFolders) {
@@ -734,7 +735,7 @@ export class ArduinoApp {
             }
         }
 
-        if (dc.buildPreferences) {
+        if (dc.buildPreferences && compiles) {
             for (const pref of dc.buildPreferences) {
                 // Note: BuildPrefSetting makes sure that each preference
                 // value consists of exactly two items (key and value).
